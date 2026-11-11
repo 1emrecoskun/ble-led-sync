@@ -6,16 +6,12 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from .core import session_type
+
+from desktop_lifecycle import Paths, session_type
 
 MAC_RE = re.compile(r'(?i)\b(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\b')
 
-if platform.system() == 'Windows':
-    STATE = Path(os.environ.get('APPDATA', str(Path.home()/'AppData'/'Roaming'))) / 'ble-led-sync'
-elif platform.system() == 'Darwin':
-    STATE = Path.home() / 'Library' / 'Application Support' / 'ble-led-sync'
-else:
-    STATE = Path(os.environ.get('XDG_STATE_HOME', str(Path.home()/'.local'/'state'))) / 'ble-led-sync'
+STATE = Paths.for_app('ble-led-sync').state
 
 def cmd(args, timeout=5):
     if not shutil.which(args[0]):
@@ -35,7 +31,7 @@ def collect():
     parts = ['BLE LED Sync 0.2.0 — local diagnostics',
              datetime.datetime.now().isoformat(timespec='seconds'),
              f'Python: {platform.python_version()} | kernel: {platform.release()}',
-             f'Session: {session_type(os.environ)}',
+             f'Session: {session_type()}',
              'This report is not a test result. Bluetooth addresses are masked, '
              'but file paths and device names may still be present.']
     for path in ('/etc/os-release', '/etc/linuxmint/info'):
@@ -53,7 +49,7 @@ def collect():
     ]
     for args in checks:
         parts.append('\n$ ' + ' '.join(args) + '\n' + cmd(args))
-    s = session_type(os.environ)
+    s = session_type()
     parts.append('\nSCREEN PATH: ' + (
         'X11 → MSS candidate. Real capture tested when SCREEN starts.' if s == 'x11' else
         'Wayland → this version does not capture the screen. Portal/PipeWire integration not yet available; no silent XWayland fallback.' if s == 'wayland' else

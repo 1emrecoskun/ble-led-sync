@@ -70,7 +70,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-56 birim testi (protokol, renk, beat zarfı, masaüstü yardımcıları, motor).
+55 birim testi (protokol, renk, beat zarfı, motor, masaüstü entegrasyonu).
 
 ## Belgeler
 - `docs/protocol-reversing.md` — BLE protokolü, paket yapısı, güvenlik gözlemleri
@@ -86,5 +86,27 @@ cihazlarına yetkisiz erişim veya kullanım yasalara aykırıdır ve tamamen
 kullanıcının sorumluluğundadır. Kötü niyetli kullanım durumunda tüm hukuki ve
 cezai sorumluluk kullanıcıya aittir.
 
-## Lisans
-MIT — bkz. `LICENSE`.
+## Nelerin üzerine kuruldu
+
+Pencere, tepsi simgesi ve ses motoru bu projenin kendi işi. Sıkıcı kısımlar
+(tek örnek kilidi, XDG yolları, menü girişi, otomatik açılış, Wayland farkındalı
+tepsi tespiti, dönen log) bu uygulamadan çıkarılmış küçük ve bağımlılıksız
+[`desktop-lifecycle`](https://github.com/1emrecoskun/desktop-lifecycle)
+kütüphanesinden geliyor.
+
+## Gizlilik
+
+- Ses, kendi çıkış cihazınızın monitor kaynağından okunur; mikrofon hiç
+  kullanılmaz.
+- Ekran modu kendi sanal ekranınızı okur; hiçbir şey saklanmaz, hiçbir yere
+  gönderilmez.
+- Hesap yok, telemetri yok, analitik yok; şeridinize yerel Bluetooth bağlantısı
+  dışında ağ istemcisi yok.
+- Tanılama raporu, issue'ya yapıştırmadan önce Bluetooth adreslerini maskeler;
+  yine de dosya yolları ve işletim sistemi ayrıntıları içerir. Paylaşmadan önce
+  okuyun.
+
+## Lisans ve isimler
+MIT — bkz. `LICENSE`. Lisans kodu kapsar; proje adını veya simgesini kapsamaz ve
+garanti vermez. "LEDBLE" ve "Triones" kendi sahiplerine aittir; bu proje onlarla
+bağlantılı değildir.

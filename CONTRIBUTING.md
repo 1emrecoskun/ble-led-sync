@@ -6,8 +6,7 @@ Thanks for your interest! This project is small and welcomes focused PRs.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-pip install bleak mss numpy
+pip install -e .                 # pulls in bleak, mss, numpy, desktop-lifecycle
 python -m unittest discover -s tests -v
 ```
 
@@ -20,7 +19,20 @@ python -m unittest discover -s tests -v
 
 ## Reporting bugs
 Use the issue templates. Include OS, session type (X11/Wayland), Python version,
-and a sanitized log excerpt from `~/.local/state/ble-led-sync/uygulama.log`.
+and a sanitized log excerpt from
+`~/.local/state/ble-led-sync/logs/uygulama.log`.
+
+## Sign-off (Developer Certificate of Origin)
+
+Every commit must carry a `Signed-off-by` line:
+
+```bash
+git commit -s -m "Fix autostart toggle on Wayland"
+```
+
+That line certifies the [Developer Certificate of Origin 1.1](https://developercertificate.org/):
+you wrote the change, or you have the right to submit it under this project's
+MIT licence.
 
 ## Code of conduct
 By participating you agree to follow `CODE_OF_CONDUCT.md`. Be kind, keep

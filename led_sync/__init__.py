@@ -1,2 +1,2 @@
-"""BLE LED Sync — yerel Linux masaüstü prototipi."""
-__version__ = '0.2.0'
+"""BLE LED Sync — local desktop prototype for BLE LED strips."""
+__version__ = '0.2.1'

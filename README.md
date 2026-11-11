@@ -43,13 +43,16 @@ Non-Linux support is young and lightly tested — bug reports are welcome.
 - Python 3.11+
 - System: `python3-tk` (GUI), `python3-gi` + GTK3 (tray, optional), `pulseaudio-utils` (Linux audio), `bluez` (Linux Bluetooth)
 - Bluetooth adapter + a LEDBLE/Triones strip
+- `desktop-lifecycle` (installed automatically; it owns the tray, the
+  single-instance lock, the menu entry and autostart)
 
 ## Install (Linux Mint / Ubuntu family)
 ```bash
 # extract the archive, then:
 bash KUR.sh
 ```
-The installer sets up a venv, installs `bleak`, `mss`, `numpy`, the system
+The installer sets up a venv, installs `bleak`, `mss`, `numpy`,
+`desktop-lifecycle`, the system
 packages (`python3-tk`, `python3-gi`, GTK3, AppIndicator when available), a
 menu entry and autostart. Missing optional pieces only produce a warning.
 
@@ -70,7 +73,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-56 unit tests (protocol, color, beat envelope, desktop helpers, engine).
+55 unit tests (protocol, color, beat envelope, engine, desktop integration).
 
 ## Security note
 Cheap BLE LED controllers in this family usually accept unauthenticated
@@ -92,5 +95,27 @@ Unauthorized access to or control of devices you do not own is illegal and is th
 sole responsibility of the user. The author(s) bear no responsibility for
 malicious or unlawful use.
 
-## License
-MIT — see `LICENSE`.
+## Built with
+
+The window, the tray icon and the audio engine are this project's own work. The
+unglamorous parts (single-instance lock, XDG paths, menu entry, autostart,
+Wayland-aware tray detection, rotating logs) come from
+[`desktop-lifecycle`](https://github.com/1emrecoskun/desktop-lifecycle), a small
+dependency-free library extracted from this application.
+
+## Privacy
+
+- Audio is read from the monitor source of your own output device; the
+  microphone is never used.
+- Screen mode reads your own virtual display; nothing is stored and nothing is
+  uploaded.
+- There is no account, no telemetry, no analytics and no network client other
+  than the local Bluetooth connection to your strip.
+- The diagnostics report masks Bluetooth addresses before you paste it into an
+  issue, but it still contains file paths and operating system details. Read it
+  before you share it.
+
+## License and names
+MIT — see `LICENSE`. The licence covers the code, not the project name or icon,
+and it grants no warranty. "LEDBLE" and "Triones" belong to their respective
+owners; this project is not affiliated with them.

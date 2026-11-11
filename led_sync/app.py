@@ -1,7 +1,6 @@
 """Small settings window + system tray for the LED strip. Per-user; root never required."""
 import json
 import logging
-import os
 from pathlib import Path
 import platform as _platform
 import queue
@@ -9,12 +8,6 @@ import subprocess
 import sys
 import threading
 import time
-
-try:
-    import fcntl
-except ImportError:  # Windows has no fcntl
-    fcntl = None
-    import msvcrt
 
 try:
     import tkinter as tk
@@ -26,64 +19,38 @@ except ImportError as exc:  # pragma: no cover - depends on the host system
         "  Windows / macOS: reinstall Python with 'tcl/tk and IDLE' enabled."
     ) from exc
 
-from logging.handlers import RotatingFileHandler
-from .core import DEVICE_NAME, session_type
+from desktop_lifecycle import Autostart, create_tray, session_type
+from desktop_lifecycle import App as Lifecycle
+
+from .core import DEVICE_NAME
 from .engine import Engine, sinks
-from .diagnostics import STATE, save as save_diagnostics
+from .diagnostics import save as save_diagnostics
 from .i18n import t, detect_language, SUPPORTED
 
-if _platform.system() == 'Windows':
-    _CONFIG_DIR = Path(os.environ.get('APPDATA', str(Path.home()/'AppData'/'Roaming'))) / 'ble-led-sync'
-    _STATE_DIR = _CONFIG_DIR
-    _DATA_DIR = _CONFIG_DIR
-elif _platform.system() == 'Darwin':
-    _CONFIG_DIR = Path.home() / 'Library' / 'Application Support' / 'ble-led-sync'
-    _STATE_DIR = _CONFIG_DIR
-    _DATA_DIR = _CONFIG_DIR
-else:
-    _CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config'))) / 'ble-led-sync'
-    _STATE_DIR = Path(os.environ.get('XDG_STATE_HOME', str(Path.home()/'.local'/'state'))) / 'ble-led-sync'
-    _DATA_DIR = Path.home() / '.local' / 'share' / 'ble-led-sync'
+APP_NAME = 'ble-led-sync'
+LIFECYCLE = Lifecycle(APP_NAME)
+PATHS = LIFECYCLE.paths
+CONFIG = PATHS.config / 'settings.json'
 
-CONFIG = _CONFIG_DIR / 'settings.json'
-SHOW_REQUEST = _STATE_DIR / 'show-window'
-DESKTOP = _DATA_DIR / 'ble-led-sync.desktop'
+AUTOSTART = Autostart(
+    APP_NAME,
+    [str(Path(__file__).resolve().parent.parent / 'run.sh')],
+    display_name='BLE LED Sync',
+    comment='Local audio and screen sync',
+    hidden_arg='--background',
+)
 
 MODES = ('SES', 'EKRAN', 'SES + EKRAN')
 MODE_KEYS = {'SES': 'mode_audio', 'EKRAN': 'mode_screen', 'SES + EKRAN': 'mode_hybrid'}
 
 def autostart_path():
-    if _platform.system() == 'Windows':
-        return Path(os.environ.get('APPDATA', str(Path.home()/'AppData'/'Roaming'))) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup' / 'ble-led-sync.lnk'
-    if _platform.system() == 'Darwin':
-        return Path.home() / 'Library' / 'LaunchAgents' / 'com.bleledsync.plist'
-    return Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config'))) / 'autostart' / 'ble-led-sync.desktop'
+    """Where the autostart entry lives; the library owns the format and mode."""
+    return AUTOSTART.target
 
 def set_autostart(enabled):
-    if _platform.system() != 'Linux':
-        return  # tray / autostart helpers are Linux-only in 0.2.0
-    p=autostart_path()
-    if not enabled:
-        p.unlink(missing_ok=True); return
-    if not DESKTOP.exists(): raise RuntimeError('Launcher not found; run KUR.sh first.')
-    content=DESKTOP.read_text(encoding='utf-8')
-    content='\n'.join(line+' --background' if line.startswith('Exec=') and '--background' not in line else line for line in content.splitlines())+'\n'
-    p.parent.mkdir(parents=True,exist_ok=True); p.write_text(content,encoding='utf-8')
-
-def acquire_lock(handle):
-    """Take an exclusive, non-blocking lock on `handle`. True when we own it."""
-    if fcntl is not None:
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return True
-        except OSError:
-            return False
-    try:
-        handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-        return True
-    except OSError:
-        return False
+    """Enable or disable start-at-login. Raises when the entry could not be written."""
+    if not (AUTOSTART.enable() if enabled else AUTOSTART.disable()):
+        raise RuntimeError('Could not update the autostart entry.')
 
 def open_folder(path):
     if _platform.system() == 'Windows': cmd = ['explorer', str(path)]
@@ -91,38 +58,22 @@ def open_folder(path):
     else: cmd = ['xdg-open', str(path)]
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-class Tray:
-    def __init__(self, app):
-        import gi
-        gi.require_version('Gtk','3.0')
-        try:
-            gi.require_version('AyatanaAppIndicator3','0.1')
-            from gi.repository import AyatanaAppIndicator3 as Indicator
-        except (ValueError,ImportError):
-            gi.require_version('AppIndicator3','0.1')
-            from gi.repository import AppIndicator3 as Indicator
-        from gi.repository import Gtk, GLib
-        if not Gtk.init_check()[0]: raise RuntimeError('GTK display connection failed')
-        self.GLib=GLib; self.Gtk=Gtk
-        self.indicator=Indicator.Indicator.new('ble-led-sync',str(Path(__file__).resolve().parent.parent/'icon.svg'),Indicator.IndicatorCategory.APPLICATION_STATUS)
-        self.indicator.set_status(Indicator.IndicatorStatus.ACTIVE)
-        self.indicator.set_title('BLE LED Sync')
-        menu=Gtk.Menu()
-        self.status=Gtk.MenuItem(label=t('status_starting',app.lang.get())); self.status.set_sensitive(False); menu.append(self.status)
-        def item(title, callback):
-            x=Gtk.MenuItem(label=title); x.connect('activate',lambda *_:callback()); menu.append(x); return x
-        for title,key in (('mode_audio','SES'),('mode_screen','EKRAN'),('mode_hybrid','SES + EKRAN')):
-            item(t(title,app.lang.get()),lambda mode=key:app.start(mode))
-        menu.append(Gtk.SeparatorMenuItem())
-        item(t('menu_settings',app.lang.get()),app.show)
-        item(t('btn_stop',app.lang.get()),app.stop)
-        item(t('menu_quit',app.lang.get()),app.close)
-        menu.show_all(); self.indicator.set_menu(menu)
-    def pump(self):
-        context=self.GLib.MainContext.default()
-        for _ in range(20):
-            if not context.pending(): break
-            context.iteration(False)
+def build_tray(app):
+    """The indicator menu: status line, the three modes, settings/stop/quit."""
+    lang = app.lang.get()
+    return create_tray(
+        'BLE LED Sync',
+        icon=str(Path(__file__).resolve().parent.parent / 'icon.svg'),
+        items=[
+            (t('mode_audio', lang), lambda: app.start('SES')),
+            (t('mode_screen', lang), lambda: app.start('EKRAN')),
+            (t('mode_hybrid', lang), lambda: app.start('SES + EKRAN')),
+            None,  # separator
+            (t('menu_settings', lang), app.show),
+            (t('btn_stop', lang), app.stop),
+            (t('menu_quit', lang), app.close),
+        ],
+    )
 
 class App:
     def __init__(self,root,background=False):
@@ -137,7 +88,7 @@ class App:
         self.lang=tk.StringVar(value=self._load_lang())
         self.mode=tk.StringVar(value='SES'); self.brightness=tk.DoubleVar(value=45); self.sensitivity=tk.DoubleVar(value=100)
         self.mode_display=tk.StringVar(value=self._mode_label('SES'))
-        self.status=tk.StringVar(value=t('status_starting',self.lang.get())); self.auto=tk.BooleanVar(value=autostart_path().exists())
+        self.status=tk.StringVar(value=t('status_starting',self.lang.get())); self.auto=tk.BooleanVar(value=AUTOSTART.enabled)
         self.crop=True; self.monitor=1; self.sink='AUTO'; self.device_name=DEVICE_NAME
         self.load()
         f=ttk.Frame(root,padding=18); f.pack(fill='both',expand=True)
@@ -173,7 +124,7 @@ class App:
         self.btn_stop=ttk.Button(row,text=t('btn_stop',self.lang.get()),command=self.stop); self.btn_stop.pack(side='left')
         self.btn_hide=ttk.Button(row,text=t('btn_hide',self.lang.get()),command=self.hide); self.btn_hide.pack(side='right')
         self.lbl_hint=ttk.Label(f,text=t('hybrid_hint',self.lang.get()),foreground='#9db0c3'); self.lbl_hint.pack(anchor='w',pady=(10,0))
-        try: self.tray=Tray(self)
+        try: self.tray=build_tray(self)
         except Exception:
             logging.exception('Tray failed to start')
             self.notice=t('msg_tray_unavailable',self.lang.get())
@@ -186,7 +137,7 @@ class App:
     def _screen_supported(self):
         if _platform.system() in ('Windows', 'Darwin'):
             return True
-        return session_type(os.environ) == 'x11'
+        return session_type() == 'x11'
 
     def _load_lang(self):
         try:
@@ -276,7 +227,7 @@ class App:
     def auto_changed(self):
         try: set_autostart(self.auto.get())
         except Exception as e:
-            self.auto.set(autostart_path().exists()); messagebox.showerror(t('autostart_title',self.lang.get()),str(e))
+            self.auto.set(AUTOSTART.enabled); messagebox.showerror(t('autostart_title',self.lang.get()),str(e))
 
     def advanced(self):
         lang=self.lang.get()
@@ -314,15 +265,14 @@ class App:
         threading.Thread(target=worker,daemon=True).start()
 
     def logs(self):
-        open_folder(STATE)
+        open_folder(PATHS.logs)
 
     def poll(self):
         if self.closing: return
         if self.tray:
             try: self.tray.pump()
             except Exception: logging.exception('Tray events')
-        if SHOW_REQUEST.exists():
-            SHOW_REQUEST.unlink(missing_ok=True); self.show()
+        if LIFECYCLE.poll_show_request(): self.show()
         for _ in range(100):
             try: kind,value=self.engine.events.get_nowait()
             except queue.Empty: break
@@ -359,16 +309,17 @@ class App:
         else: self.root.after(100,self.wait_close)
 
 def main():
-    STATE.mkdir(parents=True,exist_ok=True)
-    handler=RotatingFileHandler(STATE/'uygulama.log',maxBytes=1_000_000,backupCount=2,encoding='utf-8')
-    logging.basicConfig(level=logging.INFO,handlers=[handler],format='%(asctime)s %(levelname)s %(name)s %(message)s')
+    LIFECYCLE.ensure_dirs()
+    LIFECYCLE.setup_logging(filename='uygulama.log')
     root=tk.Tk(); root.withdraw()
-    with open(STATE/'instance.lock','a') as instance:
-        if not acquire_lock(instance):
-            SHOW_REQUEST.touch(); root.destroy(); return
-        SHOW_REQUEST.unlink(missing_ok=True)
+    if not LIFECYCLE.acquire():
+        # Another copy is running; it has been asked to show its window.
+        root.destroy(); return
+    try:
         app=App(root,background='--background' in sys.argv)
         if '--background' not in sys.argv: root.deiconify()
         root.mainloop()
+    finally:
+        LIFECYCLE.release()
 
 if __name__=='__main__': main()

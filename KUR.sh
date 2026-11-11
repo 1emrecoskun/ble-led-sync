@@ -129,47 +129,42 @@ print('Python dependencies imported.')
 PYDEPS
 chmod +x "$TARGET/run.sh"
 
-LANG_IS_TR="$LANG_IS_TR" TARGET="$TARGET" python3 - <<'PY'
+LANG_IS_TR="$LANG_IS_TR" TARGET="$TARGET" "$TARGET/.venv/bin/python" - <<'PY'
 import os
 import pathlib
 import shutil
 import subprocess
 
-p = pathlib.Path(os.environ['TARGET'])
+from desktop_lifecycle import App, install_icon, install_menu_entry
+
+target = pathlib.Path(os.environ['TARGET'])
 turkish = os.environ.get('LANG_IS_TR') == '1'
+run = str(target / 'run.sh')
 
-def quote(value):
-    return '"' + str(value).replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$') + '"'
+app = App('ble-led-sync').ensure_dirs()
+icon = install_icon(app.paths, target / 'icon.svg', 'ble-led-sync')
+entry = install_menu_entry(
+    app.paths, 'ble-led-sync', [run],
+    display_name='BLE LED Sync',
+    comment='Yerel ses ve ekran senkronizasyonu' if turkish else 'Local audio and screen sync',
+    icon=icon,
+    categories=('AudioVideo', 'Utility'),
+)
+app.autostart([run], display_name='BLE LED Sync',
+              comment='Start BLE LED Sync in the tray at login').enable()
 
-comment = ('Yerel ses ve ekran senkronizasyonu' if turkish else 'Local audio and screen sync')
-desktop = '\n'.join(['[Desktop Entry]', 'Type=Application', 'Name=BLE LED Sync',
-                     'Comment=' + comment,
-                     'Exec=' + quote(p / 'run.sh'), 'Icon=' + str(p / 'icon.svg'), 'Terminal=false',
-                     'Categories=AudioVideo;Utility;', 'StartupNotify=true', ''])
-apps = pathlib.Path.home() / '.local/share/applications'
-apps.mkdir(parents=True, exist_ok=True)
-f = apps / 'ble-led-sync.desktop'
-f.write_text(desktop, encoding='utf-8')
-f.chmod(0o755)
 if shutil.which('xdg-user-dir'):
     out = subprocess.run(['xdg-user-dir', 'DESKTOP'], capture_output=True, text=True)
     folder = pathlib.Path(out.stdout.strip()) if out.returncode == 0 and out.stdout.strip() else None
     if folder and folder != pathlib.Path.home() and folder.is_dir():
-        dst = folder / f.name
-        shutil.copyfile(f, dst)
+        dst = folder / entry.name
+        shutil.copyfile(entry, dst)
         dst.chmod(0o755)
         if shutil.which('gio'):
             subprocess.run(['gio', 'set', str(dst), 'metadata::trusted', 'true'], capture_output=True)
-autostart = pathlib.Path(os.environ.get('XDG_CONFIG_HOME', str(pathlib.Path.home() / '.config'))) / 'autostart'
-autostart.mkdir(parents=True, exist_ok=True)
-start = '\n'.join(line + ' --background' if line.startswith('Exec=') else line for line in desktop.splitlines()) + '\n'
-(autostart / 'ble-led-sync.desktop').write_text(start, encoding='utf-8')
-print(('Menu and autostart launcher written: ' if not turkish else 'Menü ve otomatik açılış başlatıcısı oluşturuldu: ') + str(f))
+print(('Menu and autostart launcher written: ' if not turkish else 'Menü ve otomatik açılış başlatıcısı oluşturuldu: ') + str(entry))
 PY
 
-if command -v update-desktop-database >/dev/null; then update-desktop-database "$HOME/.local/share/applications" || true; fi
-cd "$TARGET"
-"$TARGET/.venv/bin/python" -m led_sync.diagnostics
 say 'INSTALLATION FINISHED. This does not prove the real LED/audio/screen test passed.' \
     'KURULUM TAMAMLANDI. Bu, gerçek LED/ses/ekran testinin geçtiği anlamına gelmez.'
 say 'Search for "BLE LED Sync" in the Mint menu. Close the phone LED LAMP app. Audio mode starts automatically.' \
