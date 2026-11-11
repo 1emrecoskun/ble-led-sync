@@ -19,7 +19,7 @@ except ImportError as exc:  # pragma: no cover - depends on the host system
         "  Windows / macOS: reinstall Python with 'tcl/tk and IDLE' enabled."
     ) from exc
 
-from desktop_lifecycle import Autostart, create_tray, session_type
+from desktop_lifecycle import Autostart, TrayUnavailable, create_tray, session_type
 from desktop_lifecycle import App as Lifecycle
 
 from .core import DEVICE_NAME
@@ -125,6 +125,11 @@ class App:
         self.btn_hide=ttk.Button(row,text=t('btn_hide',self.lang.get()),command=self.hide); self.btn_hide.pack(side='right')
         self.lbl_hint=ttk.Label(f,text=t('hybrid_hint',self.lang.get()),foreground='#9db0c3'); self.lbl_hint.pack(anchor='w',pady=(10,0))
         try: self.tray=build_tray(self)
+        except TrayUnavailable as error:
+            # A desktop without a StatusNotifierItem host is a normal
+            # situation, not a crash: say so once and keep the window.
+            logging.info('No tray on this desktop: %s', error)
+            self.notice=t('msg_tray_unavailable',self.lang.get())
         except Exception:
             logging.exception('Tray failed to start')
             self.notice=t('msg_tray_unavailable',self.lang.get())
