@@ -106,6 +106,9 @@ kütüphanesinden geliyor.
   yine de dosya yolları ve işletim sistemi ayrıntıları içerir. Paylaşmadan önce
   okuyun.
 
+## Kim yaptı
+[Emre Coşkun](https://github.com/1emrecoskun) tarafından yazıldı.
+
 ## Lisans ve isimler
 MIT — bkz. `LICENSE`. Lisans kodu kapsar; proje adını veya simgesini kapsamaz ve
 garanti vermez. "LEDBLE" ve "Triones" kendi sahiplerine aittir; bu proje onlarla

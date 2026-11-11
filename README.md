@@ -115,6 +115,9 @@ dependency-free library extracted from this application.
   issue, but it still contains file paths and operating system details. Read it
   before you share it.
 
+## Who made this
+Built by [Emre Coşkun](https://github.com/1emrecoskun).
+
 ## License and names
 MIT — see `LICENSE`. The licence covers the code, not the project name or icon,
 and it grants no warranty. "LEDBLE" and "Triones" belong to their respective
