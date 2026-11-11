@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Byte-compile
+        run: python -m compileall -q led_sync tests
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No leftover heredoc junk
+        run: |
+          if grep -rn --include='*.md' --include='*.sh' -E '^(EOF|echo done)$' .; then
+            echo 'Leftover heredoc junk found'; exit 1
+          fi
+      - name: Shell syntax
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          for script in *.sh; do bash -n "$script"; done
+      - name: No committed secrets or MAC addresses
+        run: |
+          if grep -rnIi --exclude-dir=.git -E '(BEGIN [A-Z ]*PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})' .; then
+            echo 'Possible secret or device address committed'; exit 1
+          fi

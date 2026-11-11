@@ -1,0 +1,4 @@
+# Doğrudan bağımlılıklar sabitlenmiştir; geçişli bağımlılıklar tam kilitli değildir.
+bleak==0.22.3
+mss==10.0.0
+numpy==2.2.6
