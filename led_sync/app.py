@@ -285,7 +285,7 @@ class App:
                     (k=='ble' or k=='signal' or (k=='audio' and self.mode.get()!='EKRAN') or (k=='screen' and self.mode.get()!='SES'))]
             detail=errors[0] if errors else self.messages.get('ble',t('status_connecting',self.lang.get()).format(mode=self._mode_label(self.mode.get())))
             self.status.set(self.mode.get()+' • '+(self.notice or detail))
-        if self.tray: self.tray.status.set_label(self.status.get()[:100])
+        if self.tray: self.tray.set_label(self.status.get()[:100])
         self.root.after(80,self.poll)
 
     def save_settings(self):

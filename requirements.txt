@@ -2,4 +2,4 @@
 bleak==0.22.3
 mss==10.0.0
 numpy==2.2.6
-desktop-lifecycle==0.1.1
+desktop-lifecycle==0.1.2

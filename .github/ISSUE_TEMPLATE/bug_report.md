@@ -16,5 +16,5 @@ labels: bug
 
 **Sanitized log excerpt**
 ```
-(paste from ~/.local/state/ble-led-sync/uygulama.log, remove addresses)
+(paste from ~/.local/state/ble-led-sync/logs/uygulama.log, remove addresses)
 ```
