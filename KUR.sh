@@ -149,9 +149,11 @@ entry = install_menu_entry(
     comment='Yerel ses ve ekran senkronizasyonu' if turkish else 'Local audio and screen sync',
     icon=icon,
     categories=('AudioVideo', 'Utility'),
+    extra={'StartupWMClass': 'Ble-led-sync'},
 )
 app.autostart([run], display_name='BLE LED Sync',
-              comment='Start BLE LED Sync in the tray at login').enable()
+              comment='BLE LED Sync arka planda başlasın' if turkish
+              else 'Start BLE LED Sync in the background at login').enable()
 
 if shutil.which('xdg-user-dir'):
     out = subprocess.run(['xdg-user-dir', 'DESKTOP'], capture_output=True, text=True)
@@ -162,7 +164,7 @@ if shutil.which('xdg-user-dir'):
         dst.chmod(0o755)
         if shutil.which('gio'):
             subprocess.run(['gio', 'set', str(dst), 'metadata::trusted', 'true'], capture_output=True)
-print(('Menu and autostart launcher written: ' if not turkish else 'Menü ve otomatik açılış başlatıcısı oluşturuldu: ') + str(entry))
+print(('Menu launcher written: ' if not turkish else 'Menü başlatıcısı oluşturuldu: ') + str(entry))
 PY
 
 say 'INSTALLATION FINISHED. This does not prove the real LED/audio/screen test passed.' \

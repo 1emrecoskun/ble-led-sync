@@ -56,6 +56,11 @@ The installer sets up a venv, installs `bleak`, `mss`, `numpy`,
 packages (`python3-tk`, `python3-gi`, GTK3, AppIndicator when available), a
 menu entry and autostart. Missing optional pieces only produce a warning.
 
+At login it starts **hidden**: the engine scans for the strip and runs the
+last mode, with no window on screen. Opening **BLE LED Sync** from the menu
+brings the window up; closing it hides it again. To stop the process, use
+⋯ → Quit completely.
+
 Any platform (development install):
 ```bash
 python3 -m pip install .          # installs the `ble-led-sync` command
@@ -66,7 +71,7 @@ Run manually from a checkout:
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ./run.sh               # shows window
-./run.sh --background  # tray only
+./run.sh --background  # start hidden: LED runs, no window
 ```
 
 ## Tests

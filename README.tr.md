@@ -63,7 +63,7 @@ Depodan elle çalıştırma:
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ./run.sh               # pencere açar
-./run.sh --background  # yalnızca tepsi
+./run.sh --background  # gizli başlat: LED çalışır, pencere yok
 ```
 
 ## Testler

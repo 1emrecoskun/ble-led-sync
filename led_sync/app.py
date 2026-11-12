@@ -135,9 +135,14 @@ class App:
             self.notice=t('msg_tray_unavailable',self.lang.get())
         root.protocol('WM_DELETE_WINDOW',self.hide)
         root.after(100,self.poll)
-        self.start('SES')
-        if background and self.tray: root.withdraw()
-        elif background: root.deiconify()
+        self.start(self._initial_mode())
+        if background: root.withdraw()  # start hidden: the engine runs, no window
+
+    def _initial_mode(self):
+        """Restore the last mode, but never open on a mode this session cannot do."""
+        mode=self.mode.get()
+        if mode!='SES' and not self._screen_supported(): return 'SES'
+        return mode
 
     def _screen_supported(self):
         if _platform.system() in ('Windows', 'Darwin'):
@@ -199,6 +204,9 @@ class App:
             if lang in SUPPORTED: self.lang.set(lang)
             name=d.get('device_name')
             if isinstance(name,str) and name.strip(): self.device_name=name.strip()
+            mode=d.get('mode')
+            if mode in MODES:
+                self.mode.set(mode); self.mode_display.set(self._mode_label(mode))
         except (OSError,ValueError,TypeError): pass
 
     def options(self):
@@ -225,9 +233,9 @@ class App:
         self.root.deiconify(); self.root.lift()
 
     def hide(self):
-        if self.tray: self.root.withdraw()
-        else: self.root.iconify()
-        # Without a tray the window is only minimized: never an orphan background process.
+        # Hiding keeps the LED running. To stop the process, use ⋯ -> Quit;
+        # opening the app again from the menu brings this window back.
+        self.root.withdraw()
 
     def auto_changed(self):
         try: set_autostart(self.auto.get())
@@ -298,7 +306,8 @@ class App:
         try:
             CONFIG.parent.mkdir(parents=True,exist_ok=True)
             d=dict(brightness=self.brightness.get(),sensitivity=self.sensitivity.get(),
-                   language=self.lang.get(),device_name=self.device_name)
+                   language=self.lang.get(),device_name=self.device_name,
+                   mode=self.mode.get())
             tmp=CONFIG.with_suffix('.tmp'); tmp.write_text(json.dumps(d),encoding='utf-8'); tmp.replace(CONFIG)
         except Exception: logging.exception('Settings save')
 
@@ -316,7 +325,7 @@ class App:
 def main():
     LIFECYCLE.ensure_dirs()
     LIFECYCLE.setup_logging(filename='uygulama.log')
-    root=tk.Tk(); root.withdraw()
+    root=tk.Tk(className='ble-led-sync'); root.withdraw()
     if not LIFECYCLE.acquire():
         # Another copy is running; it has been asked to show its window.
         root.destroy(); return
