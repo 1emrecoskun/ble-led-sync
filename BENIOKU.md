@@ -31,8 +31,8 @@ Tarama adı: LEDBLE-XXXXXX  (şeridinizin adını arayüzden girin: ⋯ → Ses 
 ```
 
 ## Platform desteği
-- **Linux** (X11): tam — ses + ekran senkronu, tepsi simgesi, otomatik açılış. Wayland: yalnızca ses (ekran yakalama X11 ister).
-- **Windows**: BLE kontrol, kırmızı test ve ekran senkronu çalışır; ses yakalama yok (0.2.0'da yalnız Linux). Tepsi/otomatik açılış henüz yok.
+- **Linux** (X11): tam — ses + ekran senkronu, tepsi simgesi, otomatik açılış. Wayland: yalnızca ses (ekran yakalama X11 ister). Tepsi için bir StatusNotifierItem sunucusu gerekir: GNOME'da yalnızca AppIndicator eklentisiyle vardır.
+- **Windows**: BLE kontrol, kırmızı test ve ekran senkronu çalışır; ses yakalama yok (yalnız Linux). Tepsi (pystray, isteğe bağlı) ve otomatik açılış (kullanıcıya özel Run kaydı) artık desktop-lifecycle'dan geliyor; az test edildi.
 - **macOS**: BLE kontrol, kırmızı test ve ekran senkronu çalışır; ses yakalama yok (BlackHole + henüz yazılmamış bir yakalama arka ucu gerekir). Tepsi/otomatik açılış henüz yok.
 
 Linux dışı destek yenidir ve az test edilmiştir — hata bildirimleri memnuniyetle karşılanır.
@@ -75,8 +75,11 @@ python3 -m unittest discover -s tests -v
 ## Belgeler
 - `docs/protocol-reversing.md` — BLE protokolü, paket yapısı, güvenlik gözlemleri
   (IoT / red-team araştırması için).
+- `docs/sorun-giderme.md` — cihaz bulunamadı, Wayland, tepsi, gizli başlatma,
+  loglar.
 - `SECURITY.md` — sorumlu kullanım ve IoT güvenlik notları.
 - `CONTRIBUTING.md` — geliştirme kurulumu ve katkı kuralları.
+- `CHANGELOG.md` — sürümler arasında ne değişti.
 
 ## Sorumluluk Reddi (Disclaimer)
 Bu yazılım **olduğu gibi** (as-is) sunulur, hiçbir garanti verilmez. Yazar(lar)

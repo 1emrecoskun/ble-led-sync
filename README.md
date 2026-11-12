@@ -1,6 +1,6 @@
 # BLE LED Sync — Audio & Screen Reactive LED Strip Controller
 
-🌐 Language: **English** | [Türkçe](README.tr.md)
+🌐 Language: **English** | [Türkçe](BENIOKU.md)
 
 A small Linux desktop app that drives a cheap Bluetooth LE LED strip
 (`LEDBLE-` / Triones family) from your PC: it follows the screen color,
@@ -31,9 +31,9 @@ Scan name: LEDBLE-XXXXXX  (set your strip's name in the UI: ⋯ → Audio output
 ```
 
 ## Platform support
-- **Linux** (X11): full — audio + screen sync, tray icon, autostart. Wayland: audio only (screen capture needs X11).
-- **Windows**: BLE control, red test and screen sync are implemented; audio capture is not (Linux-only in 0.2.0). No tray icon or autostart yet.
-- **macOS**: BLE control, red test and screen sync are implemented; audio capture is not (that would need BlackHole plus a capture backend that does not exist yet). No tray icon or autostart yet.
+- **Linux** (X11): full — audio + screen sync, tray icon, autostart. Wayland: audio only (screen capture needs X11). A tray needs a StatusNotifierItem host: GNOME has one only with its AppIndicator extension.
+- **Windows**: BLE control, red test and screen sync are implemented; audio capture is not (Linux-only). Tray (pystray, optional) and autostart (per-user Run key) come from desktop-lifecycle; lightly tested.
+- **macOS**: BLE control, red test and screen sync are implemented; audio capture is not (that would need BlackHole plus a capture backend that does not exist yet). Tray (pystray, optional) and autostart (LaunchAgent) come from desktop-lifecycle; lightly tested.
 
 Non-Linux support is young and lightly tested — bug reports are welcome.
 
@@ -88,8 +88,11 @@ GATT writes from any client in radio range. This tool only controls devices
 ## Documentation
 - `docs/protocol-reversing.md` — BLE protocol, packet format, security
   observations (useful for IoT / red-team research).
+- `docs/troubleshooting.md` — device not found, Wayland, tray, hidden start,
+  logs.
 - `SECURITY.md` — responsible use and IoT security notes.
 - `CONTRIBUTING.md` — dev setup and guidelines.
+- `CHANGELOG.md` — what changed between versions.
 
 ## Disclaimer
 This software is provided **"as is"**, without warranty of any kind, express or

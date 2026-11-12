@@ -84,7 +84,7 @@ if [[ -d "$TARGET/led_sync" && "$HERE" != "$TARGET" ]]; then
   say "Previous application code backed up to: $BACKUP" "Önceki uygulama kodu yedeklendi: $BACKUP"
 fi
 if [[ "$HERE" != "$TARGET" ]]; then
-  for item in led_sync requirements.txt run.sh README.md README.tr.md LICENSE icon.svg; do
+  for item in led_sync requirements.txt run.sh README.md BENIOKU.md LICENSE icon.svg; do
     if [[ -e "$HERE/$item" ]]; then cp -a "$HERE/$item" "$TARGET/"
     else say "note: $item missing, skipped" "not: $item bulunamadı, atlandı"; fi
   done
